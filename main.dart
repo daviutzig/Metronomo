@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart'; // Importação necessária para usar os sons do sistema
 import 'dart:async';
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:flutter_beep/flutter_beep.dart';
 
 void main() => runApp(MetronoApp());
 
@@ -80,12 +80,12 @@ class _MetronomeScreenState extends State<MetronomeScreen> {
     _timer?.cancel();
     if (musicaAtual == null) return;
     
-    // Toca o primeiro clique usando o som nativo e curto do Android (estilo clique/teclado)
-    if (estaRodando) FlutterBeep.playSysSound(AndroidSoundIDs.TONE_PROP_BEEP);
+    // Toca o primeiro clique usando o som nativo de "click de digitação" do próprio celular
+    if (estaRodando) SystemSound.play(SystemSoundType.click);
     
     _timer = Timer.periodic(Duration(milliseconds: (60000 / musicaAtual!.bpm).round()), (t) {
       if (estaRodando) {
-        FlutterBeep.playSysSound(AndroidSoundIDs.TONE_PROP_BEEP);
+        SystemSound.play(SystemSoundType.click);
       }
     });
   }
