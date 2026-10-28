@@ -28,8 +28,12 @@ jobs:
     - name: Instalando as dependencias do App
       run: flutter pub get
 
+    - name: Criando a estrutura de pastas do Android
+      run: flutter create . --platforms=android
+
     - name: Compilando o arquivo APK
       run: flutter build apk --debug -t main.dart
+
 
     - name: Disponibilizando o APK para Download
       uses: actions/upload-artifact@v4
