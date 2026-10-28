@@ -33,6 +33,9 @@ jobs:
 
     - name: Instalando dependencias atualizadas
       run: flutter pub get
+      
+    - name: Gerar arquivo de audio compativel
+      run: python3 gerar_click.py
 
     - name: Compilando o arquivo APK final
       run: flutter build apk --debug -t main.dart
