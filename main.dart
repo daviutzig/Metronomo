@@ -3,6 +3,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:audioplayers/audioplayers.dart';
+import 'package:metronome/metronome.dart';
 
 void main() => runApp(MetronoApp());
 
@@ -44,6 +45,7 @@ class _MetronomeScreenState extends State<MetronomeScreen> {
   bool estaRodando = false;
   Timer? _timer;
   final AudioPlayer _audioPlayer = AudioPlayer();
+  final Metronome _metronome = Metronome();
 
   @override
   void initState() {
