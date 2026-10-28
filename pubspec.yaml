@@ -9,7 +9,7 @@ dependencies:
   flutter:
     sdk: flutter
   shared_preferences: ^2.2.0
-  flutter_synth: ^0.0.2
+  just_audio: ^0.9.40
 
 flutter:
   uses-material-design: true
