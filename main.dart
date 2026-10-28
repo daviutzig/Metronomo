@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:audioplayers/audioplayers.dart';
+import 'package:flutter_beep/flutter_beep.dart';
 
 void main() => runApp(MetronoApp());
 
@@ -26,10 +26,8 @@ class Musica {
   int bpm;
   Musica({required this.id, required this.nome, required this.description, required this.bpm});
 
-  // Converte a Música para salvar como texto (JSON)
   Map<String, dynamic> toMap() => {'id': id, 'nome': nome, 'description': description, 'bpm': bpm};
 
-  // Recria a Música vinda do texto salvo (JSON)
   factory Musica.fromMap(Map<String, dynamic> map) => Musica(
     id: map['id'], nome: map['nome'], description: map['description'], bpm: map['bpm']
   );
@@ -45,7 +43,6 @@ class _MetronomeScreenState extends State<MetronomeScreen> {
   Musica? musicaAtual;
   bool estaRodando = false;
   Timer? _timer;
-  final AudioPlayer _audioPlayer = AudioPlayer();
 
   @override
   void initState() {
@@ -53,7 +50,6 @@ class _MetronomeScreenState extends State<MetronomeScreen> {
     _carregarPlaylistSalva();
   }
 
-  // Carrega as músicas salvas na memória interna do celular
   void _carregarPlaylistSalva() async {
     final prefs = await SharedPreferences.getInstance();
     final String? playlistJson = prefs.getString('minha_playlist');
@@ -63,7 +59,6 @@ class _MetronomeScreenState extends State<MetronomeScreen> {
         playlist = decoded.map((item) => Musica.fromMap(item)).toList();
       });
     } else {
-      // Playlist padrão caso o app seja aberto pela primeira vez
       setState(() {
         playlist = [
           Musica(id: '1', nome: 'Música de Abertura', description: 'Introdução no teclado', bpm: 120),
@@ -75,7 +70,6 @@ class _MetronomeScreenState extends State<MetronomeScreen> {
     }
   }
 
-  // Grava as músicas na memória sempre que houver mudanças
   void _salvarPlaylistNoDispositivo() async {
     final prefs = await SharedPreferences.getInstance();
     final String playlistJson = jsonEncode(playlist.map((m) => m.toMap()).toList());
@@ -85,11 +79,13 @@ class _MetronomeScreenState extends State<MetronomeScreen> {
   void _iniciarMetronomo() {
     _timer?.cancel();
     if (musicaAtual == null) return;
-    if (estaRodando) _audioPlayer.play(AssetSource('click.wav'), mode: PlayerMode.lowLatency);
+    
+    // Toca o primeiro clique usando o som nativo e curto do Android (estilo clique/teclado)
+    if (estaRodando) FlutterBeep.playSysSound(AndroidSoundIDs.TONE_PROP_BEEP);
     
     _timer = Timer.periodic(Duration(milliseconds: (60000 / musicaAtual!.bpm).round()), (t) {
       if (estaRodando) {
-        _audioPlayer.play(AssetSource('click.wav'), mode: PlayerMode.lowLatency);
+        FlutterBeep.playSysSound(AndroidSoundIDs.TONE_PROP_BEEP);
       }
     });
   }
@@ -137,7 +133,6 @@ class _MetronomeScreenState extends State<MetronomeScreen> {
   @override
   void dispose() {
     _timer?.cancel();
-    _audioPlayer.dispose();
     super.dispose();
   }
 
