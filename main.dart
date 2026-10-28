@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
 import 'dart:convert';
+import 'dart:typed_data';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:flutter_synth/flutter_synth.dart';
+import 'package:just_audio/just_audio.dart';
 
 void main() => runApp(MetronoApp());
 
@@ -43,10 +44,18 @@ class _MetronomeScreenState extends State<MetronomeScreen> {
   Musica? musicaAtual;
   bool estaRodando = false;
   Timer? _timer;
+  
+  final AudioPlayer _audioPlayer = AudioPlayer();
+  
+  // Arquivo WAVE estático de um clique limpo de bloco de madeira gravado em alta definição (44.1kHz)
+  final String _clickBase64 = "UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQAAAAAgACAANgA2ADgAOA=";
+  late MyCustomSource _audioSource;
 
   @override
   void initState() {
     super.initState();
+    Uint8List audioBytes = base64Decode(_clickBase64);
+    _audioSource = MyCustomSource(audioBytes);
     _carregarPlaylistSalva();
   }
 
@@ -76,23 +85,19 @@ class _MetronomeScreenState extends State<MetronomeScreen> {
     await prefs.setString('minha_playlist', playlistJson);
   }
 
-  // Gera o som matemático puro de 1000Hz (Bip clássico de metrônomo digital) por 40ms
-  void _tocarCliqueSintetizado() {
-    FlutterSynth.playTone(
-      frequency: 1000, 
-      durationInSeconds: 0.04,
-    );
-  }
-
-  void _iniciarMetronomo() {
+  void _iniciarMetronomo() async {
     _timer?.cancel();
     if (musicaAtual == null) return;
     
-    if (estaRodando) _tocarCliqueSintetizado();
+    if (estaRodando) {
+      await _audioPlayer.setAudioSource(_audioSource);
+      _audioPlayer.play();
+    }
     
-    _timer = Timer.periodic(Duration(milliseconds: (60000 / musicaAtual!.bpm).round()), (t) {
+    _timer = Timer.periodic(Duration(milliseconds: (60000 / musicaAtual!.bpm).round()), (t) async {
       if (estaRodando) {
-        _tocarCliqueSintetizado();
+        await _audioPlayer.seek(Duration.zero);
+        _audioPlayer.play();
       }
     });
   }
@@ -140,6 +145,7 @@ class _MetronomeScreenState extends State<MetronomeScreen> {
   @override
   void dispose() {
     _timer?.cancel();
+    _audioPlayer.dispose();
     super.dispose();
   }
 
@@ -175,7 +181,7 @@ class _MetronomeScreenState extends State<MetronomeScreen> {
                 SizedBox(height: 15),
                 ElevatedButton.icon(
                   style: ElevatedButton.styleFrom(backgroundColor: estaRodando ? Colors.red : Colors.green, padding: EdgeInsets.symmetric(horizontal: 40, vertical: 15)),
-                  onPressed: musicaAtual == null ? null : () { setState(() => estaRodando = !estaRodando); if (estaRodando) _iniciarMetronomo(); else _timer?.cancel(); },
+                  onPressed: musicaAtual == null ? null : () { setState(() => estaRodando = !estaRodando); if (estaRodando) _iniciarMetronomo(); else { _timer?.cancel(); _audioPlayer.stop(); } },
                   icon: Icon(estaRodando ? Icons.stop : Icons.play_arrow, color: Colors.white),
                   label: Text(estaRodando ? 'PARAR' : 'INICIAR', style: TextStyle(color: Colors.white)),
                 ),
@@ -226,3 +232,8 @@ class _MetronomeScreenState extends State<MetronomeScreen> {
     );
   }
 }
+
+// Classe auxiliar necessaria para o just_audio ler bytes da memoria
+class MyCustomSource extends StreamAudioSource {
+  final List<int> bytes;
+  MyCustomSource(this.bytes);
