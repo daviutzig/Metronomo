@@ -34,8 +34,6 @@ jobs:
     - name: Compilando o arquivo APK final
       run: flutter build apk --debug -t main.dart
 
-
-
     - name: Disponibilizando o APK para Download
       uses: actions/upload-artifact@v4
       with:
