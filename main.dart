@@ -196,6 +196,29 @@ void _iniciarMetronomo() {
                   icon: Icon(estaRodando ? Icons.stop : Icons.play_arrow, color: Colors.white),
                   label: Text(estaRodando ? 'PARAR' : 'INICIAR', style: TextStyle(color: Colors.white)),
                 ),
+                
+                  TextButton(
+                    onPressed: () async {
+                      try {
+                        await _audioPlayer.stop();
+                        await _audioPlayer.play(
+                          AssetSource('click.wav'),
+                        );
+                      } catch (e) {
+                        if (!mounted) return;
+                  
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Erro no áudio: $e'),
+                          ),
+                        );
+                      }
+                    },
+                    child: const Text(
+                      'TESTAR SOM',
+                      style: TextStyle(color: Colors.amber),
+                    ),
+                  ),
               ],
             ),
           ),
