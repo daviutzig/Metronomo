@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart'; // Importação necessária para usar os sons do sistema
 import 'dart:async';
 import 'dart:convert';
+import 'dart:typed_data';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:audioplayers/audioplayers.dart';
 
 void main() => runApp(MetronoApp());
 
@@ -43,10 +44,18 @@ class _MetronomeScreenState extends State<MetronomeScreen> {
   Musica? musicaAtual;
   bool estaRodando = false;
   Timer? _timer;
+  final AudioPlayer _audioPlayer = AudioPlayer();
+  
+  // Áudio de clique digital ultra-leve convertido em texto (Base64) embutido no código
+  final String _clickBase64 = "UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQAAAAAgACAANgA2ADgAOA=";
+  late BytesSource _audioSource;
 
   @override
   void initState() {
     super.initState();
+    // Transforma o texto matemático de volta em um arquivo de som na inicialização
+    Uint8List audioBytes = base64Decode(_clickBase64);
+    _audioSource = BytesSource(audioBytes);
     _carregarPlaylistSalva();
   }
 
@@ -80,12 +89,11 @@ class _MetronomeScreenState extends State<MetronomeScreen> {
     _timer?.cancel();
     if (musicaAtual == null) return;
     
-    // Toca o primeiro clique usando o som nativo de "click de digitação" do próprio celular
-    if (estaRodando) SystemSound.play(SystemSoundType.click);
+    if (estaRodando) _audioPlayer.play(_audioSource, mode: PlayerMode.lowLatency);
     
     _timer = Timer.periodic(Duration(milliseconds: (60000 / musicaAtual!.bpm).round()), (t) {
       if (estaRodando) {
-        SystemSound.play(SystemSoundType.click);
+        _audioPlayer.play(_audioSource, mode: PlayerMode.lowLatency);
       }
     });
   }
@@ -133,6 +141,7 @@ class _MetronomeScreenState extends State<MetronomeScreen> {
   @override
   void dispose() {
     _timer?.cancel();
+    _audioPlayer.dispose();
     super.dispose();
   }
 
