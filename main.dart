@@ -77,19 +77,41 @@ class _MetronomeScreenState extends State<MetronomeScreen> {
     await prefs.setString('minha_playlist', playlistJson);
   }
 
-  void _iniciarMetronomo() {
-    _timer?.cancel();
-    if (musicaAtual == null) return;
-    
-    // Toca o primeiro imediatamente no modo de baixa latência de palco
-    if (estaRodando) _audioPlayer.play(AssetSource('click.wav'), mode: PlayerMode.lowLatency);
-    
-    _timer = Timer.periodic(Duration(milliseconds: (60000 / musicaAtual!.bpm).round()), (t) {
-      if (estaRodando) {
-        _audioPlayer.play(AssetSource('click.wav'), mode: PlayerMode.lowLatency);
-      }
-    });
+  
+Future<void> _tocarClique() async {
+  try {
+    await _audioPlayer.play(
+      AssetSource('click.wav'),
+    );
+  } catch (e, stackTrace) {
+    debugPrint('Erro ao reproduzir clique: $e');
+    debugPrintStack(stackTrace: stackTrace);
   }
+}
+
+void _iniciarMetronomo() {
+  _timer?.cancel();
+
+  if (musicaAtual == null || !estaRodando) return;
+
+  // Primeiro clique imediato.
+  _tocarClique();
+
+  // Cliques seguintes conforme o BPM.
+  final intervalo = Duration(
+    microseconds: (60000000 / musicaAtual!.bpm).round(),
+  );
+
+  _timer = Timer.periodic(intervalo, (timer) {
+    if (!estaRodando || !mounted) {
+      timer.cancel();
+      return;
+    }
+
+    _tocarClique();
+  });
+}
+
 
   void _abrirFormulario({Musica? ed}) {
     var nCtrl = TextEditingController(text: ed?.nome ?? '');
