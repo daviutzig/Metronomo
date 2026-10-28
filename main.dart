@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
 import 'dart:convert';
-import 'dart:typed_data';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:just_audio/just_audio.dart';
 
@@ -47,15 +46,15 @@ class _MetronomeScreenState extends State<MetronomeScreen> {
   
   final AudioPlayer _audioPlayer = AudioPlayer();
   
-  // Arquivo WAVE estático de um clique limpo de bloco de madeira gravado em alta definição (44.1kHz)
+  // Som de clique limpo e curto em formato WAVE padrão de mercado
   final String _clickBase64 = "UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQAAAAAgACAANgA2ADgAOA=";
-  late MyCustomSource _audioSource;
+  late String _audioUri;
 
   @override
   void initState() {
     super.initState();
-    Uint8List audioBytes = base64Decode(_clickBase64);
-    _audioSource = MyCustomSource(audioBytes);
+    // Cria uma URI de dados estável para o player ler diretamente como arquivo de áudio
+    _audioUri = "data:audio/wav;base64,$_clickBase64";
     _carregarPlaylistSalva();
   }
 
@@ -90,7 +89,7 @@ class _MetronomeScreenState extends State<MetronomeScreen> {
     if (musicaAtual == null) return;
     
     if (estaRodando) {
-      await _audioPlayer.setAudioSource(_audioSource);
+      await _audioPlayer.setUrl(_audioUri);
       _audioPlayer.play();
     }
     
@@ -169,7 +168,7 @@ class _MetronomeScreenState extends State<MetronomeScreen> {
                 Text(musicaAtual?.description ?? "-", style: TextStyle(fontSize: 14, color: Colors.grey)),
                 SizedBox(height: 20),
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisAlignment: Main => MainAxisAlignment.center,
                   children: [
                     IconButton(icon: Icon(Icons.remove_circle_outline, size: 40, color: Colors.redAccent), onPressed: musicaAtual != null ? () { setState(() { musicaAtual!.bpm--; }); _iniciarMetronomo(); _salvarPlaylistNoDispositivo(); } : null),
                     SizedBox(width: 20),
@@ -232,8 +231,3 @@ class _MetronomeScreenState extends State<MetronomeScreen> {
     );
   }
 }
-
-// Classe auxiliar necessaria para o just_audio ler bytes da memoria
-class MyCustomSource extends StreamAudioSource {
-  final List<int> bytes;
-  MyCustomSource(this.bytes);
