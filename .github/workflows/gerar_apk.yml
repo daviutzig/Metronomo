@@ -28,6 +28,9 @@ jobs:
     - name: Criando a estrutura de pastas do Android
       run: flutter create . --platforms=android
 
+    - name: Garantindo pasta de assets
+      run: mkdir -p assets
+
     - name: Instalando dependencias atualizadas
       run: flutter pub get
 
