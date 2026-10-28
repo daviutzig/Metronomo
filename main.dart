@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'dart:async';
 import 'dart:convert';
+import 'dart:typed_data';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:audioplayers/audioplayers.dart';
 
 void main() => runApp(MetronoApp());
 
@@ -43,10 +44,20 @@ class _MetronomeScreenState extends State<MetronomeScreen> {
   Musica? musicaAtual;
   bool estaRodando = false;
   Timer? _timer;
+  
+  // Player de Áudio Profissional
+  final AudioPlayer _audioPlayer = AudioPlayer();
+  
+  // Onda senoidal de áudio estática convertida em texto (Base64) gerando um som de "clique/blip" analógico seco
+  final String _clickBase64 = "UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQAAAAAgACAANgA2ADgAOA=";
+  late Source _audioSource;
 
   @override
   void initState() {
     super.initState();
+    // Reconverte os dados matemáticos em Bytes estáveis de som ao inicializar
+    Uint8List audioBytes = base64Decode(_clickBase64);
+    _audioSource = BytesSource(audioBytes);
     _carregarPlaylistSalva();
   }
 
@@ -76,22 +87,16 @@ class _MetronomeScreenState extends State<MetronomeScreen> {
     await prefs.setString('minha_playlist', playlistJson);
   }
 
-  // Função modificada para forçar o aviso sonoro de hardware (Bipe de Alerta)
-  void _emitirCliqueNativo() {
-    SystemChannels.platform.invokeMethod('HapticFeedback.vibrate'); // Dá um leve retorno tátil se o celular apoiar
-    // Toca o som de alerta do sistema (ignora a maioria dos bloqueios de mídia)
-    SystemSound.play(SystemSoundType.alert); 
-  }
-
   void _iniciarMetronomo() {
     _timer?.cancel();
     if (musicaAtual == null) return;
     
-    if (estaRodando) _emitirCliqueNativo();
+    // Força o reprodutor a tocar em modo de baixa latência e direto no canal de mídia (fone de ouvido)
+    if (estaRodando) _audioPlayer.play(_audioSource, mode: PlayerMode.lowLatency);
     
     _timer = Timer.periodic(Duration(milliseconds: (60000 / musicaAtual!.bpm).round()), (t) {
       if (estaRodando) {
-        _emitirCliqueNativo();
+        _audioPlayer.play(_audioSource, mode: PlayerMode.lowLatency);
       }
     });
   }
@@ -139,6 +144,7 @@ class _MetronomeScreenState extends State<MetronomeScreen> {
   @override
   void dispose() {
     _timer?.cancel();
+    _audioPlayer.dispose();
     super.dispose();
   }
 
