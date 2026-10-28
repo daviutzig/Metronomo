@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
 import 'dart:convert';
-import 'dart:typed_data';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:audioplayers/audioplayers.dart';
+import 'package:flutter_synth/flutter_synth.dart';
 
 void main() => runApp(MetronoApp());
 
@@ -44,20 +43,10 @@ class _MetronomeScreenState extends State<MetronomeScreen> {
   Musica? musicaAtual;
   bool estaRodando = false;
   Timer? _timer;
-  
-  // Player de Áudio Profissional
-  final AudioPlayer _audioPlayer = AudioPlayer();
-  
-  // Onda senoidal de áudio estática convertida em texto (Base64) gerando um som de "clique/blip" analógico seco
-  final String _clickBase64 = "UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQAAAAAgACAANgA2ADgAOA=";
-  late Source _audioSource;
 
   @override
   void initState() {
     super.initState();
-    // Reconverte os dados matemáticos em Bytes estáveis de som ao inicializar
-    Uint8List audioBytes = base64Decode(_clickBase64);
-    _audioSource = BytesSource(audioBytes);
     _carregarPlaylistSalva();
   }
 
@@ -87,16 +76,23 @@ class _MetronomeScreenState extends State<MetronomeScreen> {
     await prefs.setString('minha_playlist', playlistJson);
   }
 
+  // Gera o som matemático puro de 1000Hz (Bip clássico de metrônomo digital) por 40ms
+  void _tocarCliqueSintetizado() {
+    FlutterSynth.playTone(
+      frequency: 1000, 
+      durationInSeconds: 0.04,
+    );
+  }
+
   void _iniciarMetronomo() {
     _timer?.cancel();
     if (musicaAtual == null) return;
     
-    // Força o reprodutor a tocar em modo de baixa latência e direto no canal de mídia (fone de ouvido)
-    if (estaRodando) _audioPlayer.play(_audioSource, mode: PlayerMode.lowLatency);
+    if (estaRodando) _tocarCliqueSintetizado();
     
     _timer = Timer.periodic(Duration(milliseconds: (60000 / musicaAtual!.bpm).round()), (t) {
       if (estaRodando) {
-        _audioPlayer.play(_audioSource, mode: PlayerMode.lowLatency);
+        _tocarCliqueSintetizado();
       }
     });
   }
@@ -144,7 +140,6 @@ class _MetronomeScreenState extends State<MetronomeScreen> {
   @override
   void dispose() {
     _timer?.cancel();
-    _audioPlayer.dispose();
     super.dispose();
   }
 
