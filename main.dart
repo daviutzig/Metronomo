@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:flutter_tts/flutter_tts.dart';
+import 'package:audioplayers/audioplayers.dart';
 
 void main() => runApp(MetronoApp());
 
@@ -43,22 +43,12 @@ class _MetronomeScreenState extends State<MetronomeScreen> {
   Musica? musicaAtual;
   bool estaRodando = false;
   Timer? _timer;
-  
-  // Inicializa o Sintetizador de Voz Nativo do Celular
-  final FlutterTts _flutterTts = FlutterTts();
+  final AudioPlayer _audioPlayer = AudioPlayer();
 
   @override
   void initState() {
     super.initState();
-    _configurarSintetizador();
     _carregarPlaylistSalva();
-  }
-
-  // Configura a voz para ser o mais rapida e curta possivel (estilo clique)
-  void _configurarSintetizador() async {
-    await _flutterTts.setLanguage("pt-BR");
-    await _flutterTts.setSpeechRate(1.0); // Velocidade maxima
-    await _flutterTts.setPitch(2.0);      // Tom mais agudo para simular o bip
   }
 
   void _carregarPlaylistSalva() async {
@@ -87,22 +77,16 @@ class _MetronomeScreenState extends State<MetronomeScreen> {
     await prefs.setString('minha_playlist', playlistJson);
   }
 
-  // Dispara a fonetica curta "t" que o chip de som do Android interpreta como um estalo limpo
-  void _tocarCliqueVoz() {
-    if (estaRodando) {
-      _flutterTts.speak("t");
-    }
-  }
-
   void _iniciarMetronomo() {
     _timer?.cancel();
     if (musicaAtual == null) return;
     
-    if (estaRodando) _tocarCliqueVoz();
+    // Toca o primeiro imediatamente no modo de baixa latência de palco
+    if (estaRodando) _audioPlayer.play(AssetSource('click.wav'), mode: PlayerMode.lowLatency);
     
     _timer = Timer.periodic(Duration(milliseconds: (60000 / musicaAtual!.bpm).round()), (t) {
       if (estaRodando) {
-        _tocarCliqueVoz();
+        _audioPlayer.play(AssetSource('click.wav'), mode: PlayerMode.lowLatency);
       }
     });
   }
@@ -150,7 +134,7 @@ class _MetronomeScreenState extends State<MetronomeScreen> {
   @override
   void dispose() {
     _timer?.cancel();
-    _flutterTts.stop();
+    _audioPlayer.dispose();
     super.dispose();
   }
 
@@ -186,7 +170,7 @@ class _MetronomeScreenState extends State<MetronomeScreen> {
                 SizedBox(height: 15),
                 ElevatedButton.icon(
                   style: ElevatedButton.styleFrom(backgroundColor: estaRodando ? Colors.red : Colors.green, padding: EdgeInsets.symmetric(horizontal: 40, vertical: 15)),
-                  onPressed: musicaAtual == null ? null : () { setState(() => estaRodando = !estaRodando); if (estaRodando) _iniciarMetronomo(); else { _timer?.cancel(); _flutterTts.stop(); } },
+                  onPressed: musicaAtual == null ? null : () { setState(() => estaRodando = !estaRodando); if (estaRodando) _iniciarMetronomo(); else { _timer?.cancel(); _audioPlayer.stop(); } },
                   icon: Icon(estaRodando ? Icons.stop : Icons.play_arrow, color: Colors.white),
                   label: Text(estaRodando ? 'PARAR' : 'INICIAR', style: TextStyle(color: Colors.white)),
                 ),
