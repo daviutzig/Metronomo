@@ -53,7 +53,6 @@ class _MetronomeScreenState extends State<MetronomeScreen> {
   @override
   void initState() {
     super.initState();
-    // Cria uma URI de dados estável para o player ler diretamente como arquivo de áudio
     _audioUri = "data:audio/wav;base64,$_clickBase64";
     _carregarPlaylistSalva();
   }
@@ -168,7 +167,7 @@ class _MetronomeScreenState extends State<MetronomeScreen> {
                 Text(musicaAtual?.description ?? "-", style: TextStyle(fontSize: 14, color: Colors.grey)),
                 SizedBox(height: 20),
                 Row(
-                  mainAxisAlignment: Main => MainAxisAlignment.center,
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     IconButton(icon: Icon(Icons.remove_circle_outline, size: 40, color: Colors.redAccent), onPressed: musicaAtual != null ? () { setState(() { musicaAtual!.bpm--; }); _iniciarMetronomo(); _salvarPlaylistNoDispositivo(); } : null),
                     SizedBox(width: 20),
