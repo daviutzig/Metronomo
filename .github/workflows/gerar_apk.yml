@@ -25,14 +25,15 @@ jobs:
         channel: 'stable'
         cache: true
 
-    - name: Instalando as dependencias do App
-      run: flutter pub get
-
     - name: Criando a estrutura de pastas do Android
       run: flutter create . --platforms=android
 
-    - name: Compilando o arquivo APK
+    - name: Instalando dependencias atualizadas
+      run: flutter pub get
+
+    - name: Compilando o arquivo APK final
       run: flutter build apk --debug -t main.dart
+
 
 
     - name: Disponibilizando o APK para Download
