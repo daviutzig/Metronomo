@@ -9,7 +9,9 @@ dependencies:
   flutter:
     sdk: flutter
   shared_preferences: ^2.2.0
-  flutter_tts: ^4.2.1
+  audioplayers: ^6.0.0
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/click.wav
