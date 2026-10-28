@@ -1,0 +1,38 @@
+name: Gerador Automático de APK
+
+on:
+  push:
+    branches: [ "main", "master" ] # Dispara toda vez que você atualiza o código
+  workflow_dispatch: # Permite que você clique em um botão para gerar quando quiser
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Baixando o codigo do repositorio
+      uses: actions/checkout@v4
+
+    - name: Configurando o Java (Necessario para Android)
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: '17'
+
+    - name: Configurando o Flutter SDK
+      uses: subosito/flutter-action@v2
+      with:
+        channel: 'stable'
+        cache: true
+
+    - name: Instalando as dependencias do App
+      run: flutter pub get
+
+    - name: Compilando o arquivo APK
+      run: flutter build apk --debug
+
+    - name: Disponibilizando o APK para Download
+      uses: actions/upload-artifact@v4
+      with:
+        name: Metronome-App-Instalavel
+        path: build/app/outputs/flutter-apk/app-debug.apk
