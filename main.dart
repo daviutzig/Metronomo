@@ -5,6 +5,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:metronome/metronome.dart';
+import 'package:wakelock_plus/wakelock_plus.dart';
 
 void main() {
   runApp(const MetronoApp());
@@ -203,17 +204,21 @@ class _MetronomeScreenState extends State<MetronomeScreen> {
     }
   }
 
+  
   Future<void> _alternar() async {
     if (musicaAtual == null || _trocandoMusica) return;
 
     if (estaRodando) {
       setState(() => estaRodando = false);
       await _parar();
+      await WakelockPlus.disable();
     } else {
       setState(() => estaRodando = true);
+      await WakelockPlus.enable();
       await _iniciar();
     }
   }
+
 
   Future<void> _selecionarMusica(Musica musica) async {
     if (_trocandoMusica) return;
@@ -379,6 +384,7 @@ class _MetronomeScreenState extends State<MetronomeScreen> {
     if (musicaAtual?.id == musica.id) {
       setState(() => estaRodando = false);
       await _parar();
+      await WakelockPlus.disable();
 
       if (!mounted) return;
 
