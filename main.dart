@@ -4,7 +4,6 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:audioplayers/audioplayers.dart';
 import 'package:metronome/metronome.dart';
 
 void main() {
@@ -70,7 +69,6 @@ class MetronomeScreen extends StatefulWidget {
 class _MetronomeScreenState extends State<MetronomeScreen> {
   final List<Musica> playlist = [];
   final Metronome _metronome = Metronome();
-  final AudioPlayer _audioPlayer = AudioPlayer();
 
   Musica? musicaAtual;
   bool estaRodando = false;
@@ -253,15 +251,6 @@ class _MetronomeScreenState extends State<MetronomeScreen> {
     await _salvarPlaylist();
   }
 
-  Future<void> _testarSom() async {
-    try {
-      await _audioPlayer.stop();
-      await _audioPlayer.play(AssetSource('click.wav'));
-    } catch (e) {
-      debugPrint('Erro no teste de áudio: $e');
-      _mensagem('Erro no teste de áudio: $e');
-    }
-  }
 
   Future<void> _abrirFormulario({Musica? editar}) async {
     final nomeCtrl = TextEditingController(
@@ -274,104 +263,120 @@ class _MetronomeScreenState extends State<MetronomeScreen> {
       text: (editar?.bpm ?? 120).toString(),
     );
 
-    await showDialog<void>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text(
-          editar == null ? 'Nova música' : 'Editar música',
-        ),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: nomeCtrl,
-                decoration: const InputDecoration(
-                  labelText: 'Nome da música',
-                ),
-              ),
-              TextField(
-                controller: descCtrl,
-                decoration: const InputDecoration(
-                  labelText: 'Descrição',
-                ),
-              ),
-              TextField(
-                controller: bpmCtrl,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                  labelText: 'BPM (30–300)',
-                ),
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Cancelar'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              final nome = nomeCtrl.text.trim();
-              final bpm = int.tryParse(bpmCtrl.text.trim());
+    Map<String, dynamic>? resultado;
 
-              if (nome.isEmpty ||
-                  bpm == null ||
-                  bpm < 30 ||
-                  bpm > 300) {
-                ScaffoldMessenger.of(dialogContext).showSnackBar(
-                  const SnackBar(
-                    content: Text(
-                      'Informe um nome e BPM entre 30 e 300.',
-                    ),
+    try {
+      resultado = await showDialog<Map<String, dynamic>>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: Text(
+            editar == null ? 'Nova música' : 'Editar música',
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: nomeCtrl,
+                  autofocus: true,
+                  decoration: const InputDecoration(
+                    labelText: 'Nome da música',
                   ),
-                );
-                return;
-              }
+                ),
+                TextField(
+                  controller: descCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Descrição',
+                  ),
+                ),
+                TextField(
+                  controller: bpmCtrl,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    labelText: 'BPM (30 a 300)',
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Cancelar'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                final nome = nomeCtrl.text.trim();
+                final descricao = descCtrl.text.trim();
+                final bpm = int.tryParse(bpmCtrl.text.trim());
 
-              if (editar == null) {
-                setState(() {
-                  playlist.add(
-                    Musica(
-                      id: DateTime.now()
-                          .microsecondsSinceEpoch
-                          .toString(),
-                      nome: nome,
-                      description: descCtrl.text.trim(),
-                      bpm: bpm,
+                if (nome.isEmpty ||
+                    bpm == null ||
+                    bpm < 30 ||
+                    bpm > 300) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text(
+                        'Informe o nome e um BPM entre 30 e 300.',
+                      ),
                     ),
                   );
-                });
-              } else {
-                setState(() {
-                  editar.nome = nome;
-                  editar.description = descCtrl.text.trim();
-                  editar.bpm = bpm;
-                });
-
-                if (musicaAtual?.id == editar.id &&
-                    _metronome.isInitialized) {
-                  _metronome.setBPM(bpm);
+                  return;
                 }
-              }
 
-              await _salvarPlaylist();
+                // Retorna os dados e fecha o diálogo.
+                // O setState será executado somente depois.
+                Navigator.pop(dialogContext, {
+                  'nome': nome,
+                  'description': descricao,
+                  'bpm': bpm,
+                });
+              },
+              child: const Text('Salvar'),
+            ),
+          ],
+        ),
+      );
+    } finally {
+      nomeCtrl.dispose();
+      descCtrl.dispose();
+      bpmCtrl.dispose();
+    }
 
-              if (dialogContext.mounted) {
-                Navigator.pop(dialogContext);
-              }
-            },
-            child: const Text('Salvar'),
+    // Cancelou ou fechou o formulário.
+    if (resultado == null || !mounted) return;
+
+    final nome = resultado['nome'] as String;
+    final descricao = resultado['description'] as String;
+    final bpm = resultado['bpm'] as int;
+
+    if (editar == null) {
+      setState(() {
+        playlist.add(
+          Musica(
+            id: DateTime.now().microsecondsSinceEpoch.toString(),
+            nome: nome,
+            description: descricao,
+            bpm: bpm,
           ),
-        ],
-      ),
-    );
+        );
+      });
+    } else {
+      setState(() {
+        editar.nome = nome;
+        editar.description = descricao;
+        editar.bpm = bpm;
+      });
 
-    nomeCtrl.dispose();
-    descCtrl.dispose();
-    bpmCtrl.dispose();
+      if (musicaAtual?.id == editar.id &&
+          _metronome.isInitialized) {
+        await _metronome.setBPM(bpm);
+      }
+    }
+
+    await _salvarPlaylist();
   }
+
 
   Future<void> _excluirMusica(Musica musica) async {
     if (musicaAtual?.id == musica.id) {
@@ -393,7 +398,6 @@ class _MetronomeScreenState extends State<MetronomeScreen> {
   @override
   void dispose() {
     _metronome.destroy();
-    _audioPlayer.dispose();
     super.dispose();
   }
 
@@ -487,13 +491,6 @@ class _MetronomeScreenState extends State<MetronomeScreen> {
                   label: Text(
                     estaRodando ? 'PARAR' : 'INICIAR',
                     style: const TextStyle(color: Colors.white),
-                  ),
-                ),
-                TextButton(
-                  onPressed: _testarSom,
-                  child: const Text(
-                    'TESTAR SOM',
-                    style: TextStyle(color: Colors.amber),
                   ),
                 ),
               ],
