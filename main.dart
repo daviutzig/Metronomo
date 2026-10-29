@@ -265,7 +265,7 @@ class _MetronomeScreenState extends State<MetronomeScreen> {
 
     Map<String, dynamic>? resultado;
 
-  
+    try {
       resultado = await showDialog<Map<String, dynamic>>(
         context: context,
         builder: (dialogContext) => AlertDialog(
@@ -278,7 +278,6 @@ class _MetronomeScreenState extends State<MetronomeScreen> {
               children: [
                 TextField(
                   controller: nomeCtrl,
-                  autofocus: true,
                   decoration: const InputDecoration(
                     labelText: 'Nome da música',
                   ),
@@ -293,7 +292,7 @@ class _MetronomeScreenState extends State<MetronomeScreen> {
                   controller: bpmCtrl,
                   keyboardType: TextInputType.number,
                   decoration: const InputDecoration(
-                    labelText: 'BPM (30 a 300)',
+                    labelText: 'BPM (30–300)',
                   ),
                 ),
               ],
@@ -324,8 +323,6 @@ class _MetronomeScreenState extends State<MetronomeScreen> {
                   return;
                 }
 
-                // Retorna os dados e fecha o diálogo.
-                // O setState será executado somente depois.
                 Navigator.pop(dialogContext, {
                   'nome': nome,
                   'description': descricao,
@@ -337,10 +334,13 @@ class _MetronomeScreenState extends State<MetronomeScreen> {
           ],
         ),
       );
-    } 
+    } finally {
+      nomeCtrl.dispose();
+      descCtrl.dispose();
+      bpmCtrl.dispose();
+    }
 
-    // Cancelou ou fechou o formulário.
-    if (resultado == null || !mounted) return;
+    if (!mounted || resultado == null) return;
 
     final nome = resultado['nome'] as String;
     final descricao = resultado['description'] as String;
@@ -366,12 +366,13 @@ class _MetronomeScreenState extends State<MetronomeScreen> {
 
       if (musicaAtual?.id == editar.id &&
           _metronome.isInitialized) {
-        await _metronome.setBPM(bpm);
+        _metronome.setBPM(bpm);
       }
     }
 
     await _salvarPlaylist();
   }
+
 
 
   Future<void> _excluirMusica(Musica musica) async {
