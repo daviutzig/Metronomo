@@ -265,7 +265,7 @@ class _MetronomeScreenState extends State<MetronomeScreen> {
 
     Map<String, dynamic>? resultado;
 
-    try {
+  
       resultado = await showDialog<Map<String, dynamic>>(
         context: context,
         builder: (dialogContext) => AlertDialog(
