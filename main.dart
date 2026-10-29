@@ -337,11 +337,7 @@ class _MetronomeScreenState extends State<MetronomeScreen> {
           ],
         ),
       );
-    } finally {
-      nomeCtrl.dispose();
-      descCtrl.dispose();
-      bpmCtrl.dispose();
-    }
+    } 
 
     // Cancelou ou fechou o formulário.
     if (resultado == null || !mounted) return;
