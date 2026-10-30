@@ -257,126 +257,109 @@ class _MetronomeScreenState extends State<MetronomeScreen> {
   }
 
 
-  Future<void> _abrirFormulario({Musica? editar}) async {
-    final nomeCtrl = TextEditingController(
-      text: editar?.nome ?? '',
-    );
-    final descCtrl = TextEditingController(
-      text: editar?.description ?? '',
-    );
-    final bpmCtrl = TextEditingController(
-      text: (editar?.bpm ?? 120).toString(),
-    );
+    Future<void> _abrirFormulario({Musica? editar}) async {
+    final nomeCtrl = TextEditingController(text: editar?.nome ?? '');
+    final descCtrl = TextEditingController(text: editar?.description ?? '');
+    final bpmCtrl = TextEditingController(text: (editar?.bpm ?? 120).toString());
 
-    Map<String, dynamic>? resultado;
+    // Criamos uma GlobalKey para validar usando o ScaffoldMessenger correto da tela
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
 
-    try {
-      resultado = await showDialog<Map<String, dynamic>>(
-        context: context,
-        builder: (dialogContext) => AlertDialog(
-          title: Text(
-            editar == null ? 'Nova música' : 'Editar música',
+    final resultado = await showDialog<Map<String, dynamic>>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(editar == null ? 'Nova música' : 'Editar música'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: nomeCtrl,
+                decoration: const InputDecoration(labelText: 'Nome da música'),
+              ),
+              TextField(
+                controller: descCtrl,
+                decoration: const InputDecoration(labelText: 'Descrição'),
+              ),
+              TextField(
+                controller: bpmCtrl,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(labelText: 'BPM (30–300)'),
+              ),
+            ],
           ),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: nomeCtrl,
-                  decoration: const InputDecoration(
-                    labelText: 'Nome da música',
-                  ),
-                ),
-                TextField(
-                  controller: descCtrl,
-                  decoration: const InputDecoration(
-                    labelText: 'Descrição',
-                  ),
-                ),
-                TextField(
-                  controller: bpmCtrl,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                    labelText: 'BPM (30–300)',
-                  ),
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: const Text('Cancelar'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                final nome = nomeCtrl.text.trim();
-                final descricao = descCtrl.text.trim();
-                final bpm = int.tryParse(bpmCtrl.text.trim());
-
-                if (nome.isEmpty ||
-                    bpm == null ||
-                    bpm < 30 ||
-                    bpm > 300) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text(
-                        'Informe o nome e um BPM entre 30 e 300.',
-                      ),
-                    ),
-                  );
-                  return;
-                }
-
-                Navigator.pop(dialogContext, {
-                  'nome': nome,
-                  'description': descricao,
-                  'bpm': bpm,
-                });
-              },
-              child: const Text('Salvar'),
-            ),
-          ],
         ),
-      );
-    } finally {
-      nomeCtrl.dispose();
-      descCtrl.dispose();
-      bpmCtrl.dispose();
-    }
-
-    if (!mounted || resultado == null) return;
-
-    final nome = resultado['nome'] as String;
-    final descricao = resultado['description'] as String;
-    final bpm = resultado['bpm'] as int;
-
-    if (editar == null) {
-      setState(() {
-        playlist.add(
-          Musica(
-            id: DateTime.now().microsecondsSinceEpoch.toString(),
-            nome: nome,
-            description: descricao,
-            bpm: bpm,
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext), // Cancelar limpo usando o contexto do Dialog
+            child: const Text('Cancelar'),
           ),
+          ElevatedButton(
+            onPressed: () {
+              final nome = nomeCtrl.text.trim();
+              final descricao = descCtrl.text.trim();
+              final bpm = int.tryParse(bpmCtrl.text.trim());
+
+              if (nome.isEmpty || bpm == null || bpm < 30 || bpm > 300) {
+                // USANDO A REFERÊNCIA SALVA ANTES PARA EVITAR QUEBRA NA ÁRVORE
+                scaffoldMessenger.showSnackBar(
+                  const SnackBar(content: Text('Informe o nome e um BPM entre 30 e 300.')),
+                );
+                return;
+              }
+
+              // Retorna os dados para quem abriu o dialog de forma segura
+              Navigator.pop(dialogContext, {
+                'nome': nome,
+                'description': descricao,
+                'bpm': bpm,
+              });
+            },
+            child: const Text('Salvar'),
+          ),
+        ],
+      ),
+    );
+
+    // Se o usuário cancelou, resultado será null. Interrompe aqui sem erros.
+    if (resultado == null) return;
+
+    setState(() {
+      if (editar != null) {
+        // Atualiza item existente na playlist
+        final index = playlist.indexWhere((m) => m.id == editar.id);
+        if (index != -1) {
+          playlist[index] = Musica(
+            id: editar.id,
+            nome: resultado['nome'].toString(),
+            description: resultado['description'].toString(),
+            bpm: resultado['bpm'] as int,
+          );
+          
+          // Se for a música que está tocando agora, atualiza o metrônomo em tempo real
+          if (musicaAtual?.id == editar.id) {
+            musicaAtual = playlist[index];
+            if (_metronome.isInitialized && estaRodando) {
+              _metronome.setBPM(musicaAtual!.bpm);
+            }
+          }
+        }
+      } else {
+        // Insere nova música
+        final novaMusica = Musica(
+          id: DateTime.now().millisecondsSinceEpoch.toString(), // ID único baseado no timestamp
+          nome: resultado['nome'].toString(),
+          description: resultado['description'].toString(),
+          bpm: resultado['bpm'] as int,
         );
-      });
-    } else {
-      setState(() {
-        editar.nome = nome;
-        editar.description = descricao;
-        editar.bpm = bpm;
-      });
-
-      if (musicaAtual?.id == editar.id &&
-          _metronome.isInitialized) {
-        _metronome.setBPM(bpm);
+        playlist.add(novaMusica);
       }
-    }
+    });
 
+    // Salva permanentemente no SharedPreferences
     await _salvarPlaylist();
   }
+
 
 
 
