@@ -175,7 +175,7 @@ class _MetronomeScreenState extends State<MetronomeScreen> {
     }
   }
 
-  Future<void> _iniciar() async {
+    Future<void> _iniciar() async {
     if (musicaAtual == null || !estaRodando) return;
 
     try {
@@ -187,6 +187,9 @@ class _MetronomeScreenState extends State<MetronomeScreen> {
 
       _metronome.setBPM(musicaAtual!.bpm);
       _metronome.play();
+      
+      // Garante que a tela NÃO vai bloquear ao iniciar o som
+      await WakelockPlus.enable(); 
     } catch (e, stack) {
       debugPrint('Erro ao iniciar metrônomo: $e');
       debugPrintStack(stackTrace: stack);
@@ -202,22 +205,24 @@ class _MetronomeScreenState extends State<MetronomeScreen> {
     if (_metronome.isInitialized) {
       _metronome.stop();
     }
+    // Libera a tela para bloquear normalmente quando o som parar
+    await WakelockPlus.disable(); 
   }
 
+
   
-  Future<void> _alternar() async {
+    Future<void> _alternar() async {
     if (musicaAtual == null || _trocandoMusica) return;
 
     if (estaRodando) {
       setState(() => estaRodando = false);
       await _parar();
-      await WakelockPlus.disable();
     } else {
       setState(() => estaRodando = true);
-      await WakelockPlus.enable();
       await _iniciar();
     }
   }
+
 
 
   Future<void> _selecionarMusica(Musica musica) async {
